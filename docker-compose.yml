@@ -36,7 +36,7 @@ services:
 
     auth:
       # A container that exposes an API to show its IP address
-      image: ssso
+      image: cablethief/simple-sso
       container_name: auth
       networks:
         - testing
