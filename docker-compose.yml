@@ -1,0 +1,64 @@
+---
+version: '3.6'
+services:
+    traefik:
+      image: library/traefik
+      container_name: traefik
+      command:
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--entrypoints.web.address=:8080"
+        - "--log.level=DEBUG"
+      ports:
+        - 8080:8080
+      networks:
+        - testing
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      restart:
+        always
+
+
+    whoami:
+      # A container that exposes an API to show its IP address
+      image: containous/whoami
+      container_name: whoami
+      networks:
+        - testing
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.whoami.rule=Host(`whoami.local.host`)"
+        - "traefik.http.routers.whoami.entrypoints=web"
+        - "traefik.http.routers.whoami.service=whoami"
+        - "traefik.http.routers.whoami.middlewares=test-auth"
+        - "traefik.http.middlewares.test-auth.forwardauth.address=http://auth:8000/check"
+        - "traefik.http.services.whoami.loadbalancer.server.port=80"
+
+    auth:
+      # A container that exposes an API to show its IP address
+      image: ssso
+      container_name: auth
+      networks:
+        - testing
+      environment:
+        - "DOMAIN=local.host"
+        - "USERNAME=testing"
+        - "PASSWORD=$$2a$$14$$9hNpsQYk9Y4iP4en62e.UuqW3lIlpvj6MU9ejiT44ELDTmLqA.Zha"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.auth.rule=Host(`auth.local.host`)"
+        - "traefik.http.routers.auth.entrypoints=web"
+        - "traefik.http.services.auth.loadbalancer.server.port=8000"
+
+    # redis:
+      # # A container that exposes an API to show its IP address
+      # image: redis
+      # container_name: redis
+      # networks:
+      #   - testing
+
+
+networks:
+  testing:
+    name: testing
+    driver: bridge
