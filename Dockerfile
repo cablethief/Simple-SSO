@@ -11,7 +11,7 @@ LABEL repository="https://github.com/Cablethief/simple-sso"
 
 WORKDIR /simple-sso
 COPY --from=builder /simple-sso/simple-sso .
-COPY static .
+COPY static /simple-sso/static
 
-EXPOSE      8000
+EXPOSE 8000
 CMD ["./simple-sso"]  
