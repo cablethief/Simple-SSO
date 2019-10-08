@@ -57,7 +57,7 @@ func Check(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(res, "Welcome!")
 	} else {
 		// res.Header().Set("ReferrerPolicy", "unsafe-url")
-		// http.Redirect(res, req, "http://auth.local.host:8080/signin", http.StatusSeeOther)
+		http.Redirect(res, req, "http://auth.local.host:8080/signin", http.StatusSeeOther)
 		// res.WriteHeader(http.StatusUnauthorized)
 	}
 }
