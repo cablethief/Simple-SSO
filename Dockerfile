@@ -4,7 +4,7 @@ WORKDIR /simple-sso
 COPY . .
 RUN go build simple-sso.go
 
-FROM alpine:latest  
+FROM alpine:latest 
 
 LABEL maintainer="CableThief"
 LABEL repository="https://github.com/Cablethief/simple-sso"

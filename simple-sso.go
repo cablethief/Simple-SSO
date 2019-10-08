@@ -2,31 +2,32 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexedwards/scs/v2"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/alexedwards/scs/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var users = map[string]string{
 	os.Getenv("USERNAME"): os.Getenv("PASSWORD"),
 }
 
-func Signin(w http.ResponseWriter, r *http.Request) {
+func Signin(res http.ResponseWriter, req *http.Request) {
 
-	switch r.Method {
+	switch req.Method {
 	case "GET":
-		http.ServeFile(w, r, "static/index.html")
+		http.ServeFile(res, req, "static/index.html")
 	case "POST":
-		if err := r.ParseForm(); err != nil {
-			fmt.Fprintf(w, "ParseForm() err: %v", err)
+		if err := req.ParseForm(); err != nil {
+			fmt.Fprintf(res, "ParseForm() err: %v", err)
 			return
 		}
-		username := r.FormValue("username")
+		username := req.FormValue("username")
 		log.Printf("An auth attempt from %v!\n", username)
-		password := r.FormValue("password")
+		password := req.FormValue("password")
 
 		// Get the expected password from our in memory map
 		expectedPassword, ok := users[username]
@@ -35,32 +36,38 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 		// AND, if it is the same as the password we received, the we can move ahead
 		// if NOT, then we return an "Unauthorized" status
 		if !ok || bcrypt.CompareHashAndPassword([]byte(expectedPassword), []byte(password)) != nil {
-			w.WriteHeader(http.StatusUnauthorized)
+			res.WriteHeader(http.StatusUnauthorized)
+			log.Printf("Auth attempt from %v failed!\n", username)
 			return
 		}
-
-		sessionManager.Put(r.Context(), "username", os.Getenv("USERNAME"))
-		fmt.Fprintf(w, "Congratz, you authenticated!")
+		log.Printf("Auth attempt from %v succeeded!\n", username)
+		sessionManager.Put(req.Context(), "username", os.Getenv("USERNAME"))
+		fmt.Fprintf(res, "Congratz, you authenticated!")
+		http.Redirect(res, req, req.Header.Get("CameFrom"), 302)
 
 	default:
-		fmt.Fprintf(w, "Sorry, only GET and POST methods are supported.")
+		fmt.Fprintf(res, "Sorry, only GET and POST methods are supported.")
 
 	}
 
 }
 
-func Check(w http.ResponseWriter, r *http.Request) {
-
-	if sessionManager.Exists(r.Context(), "username") {
-		fmt.Fprintf(w, "Welcome!")
+func Check(res http.ResponseWriter, req *http.Request) {
+	if sessionManager.Exists(req.Context(), "username") {
+		fmt.Fprintf(res, "Welcome!")
 	} else {
-		w.WriteHeader(http.StatusUnauthorized)
+		// res.Header().Set("ReferrerPolicy", "unsafe-url")
+		// http.Redirect(res, req, "http://auth.local.host:8080/signin", http.StatusSeeOther)
+		// res.WriteHeader(http.StatusUnauthorized)
 	}
-
 }
 
 func Index(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, "./static/index.html")
+	if sessionManager.Exists(req.Context(), "username") {
+		fmt.Fprintf(res, "Welcome!")
+	} else {
+		http.ServeFile(res, req, "./static/index.html")
+	}
 }
 
 var sessionManager *scs.SessionManager
